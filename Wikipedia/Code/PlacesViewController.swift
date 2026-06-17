@@ -2100,6 +2100,14 @@ class PlacesViewController: ArticleLocationCollectionViewController, UISearchBar
         currentSearch = PlaceSearch(filter: .top, type: .location, origin: .user, sortStyle: .links, string: nil, region: region, localizedDescription: title, searchResult: searchResult, siteURL: articleURL.wmf_site)
     }
 
+    @objc public func showLocation(latitude: CLLocationDegrees, longitude: CLLocationDegrees) {
+        guard view != nil else { return }
+        coordinateFromDeepLink = CLLocationCoordinate2D(latitude: latitude, longitude: longitude)
+        panMapToNextLocationUpdate = false
+        updateViewModeToMap()
+        zoomAndPanMapView(toLocation: CLLocation(latitude: latitude, longitude: longitude))
+    }
+
     fileprivate func searchForFirstSearchSuggestion() {
         if !searchSuggestionController.searches[PlaceSearchSuggestionController.completionSection].isEmpty {
             currentSearch = searchSuggestionController.searches[PlaceSearchSuggestionController.completionSection][0]
@@ -2297,12 +2305,14 @@ class PlacesViewController: ArticleLocationCollectionViewController, UISearchBar
     }
 
     var panMapToNextLocationUpdate = true
+    private var coordinateFromDeepLink: CLLocationCoordinate2D?
 
     @IBAction fileprivate func recenterOnUserLocation(_ sender: Any) {
         guard locationManager.isAuthorized, let userLocation = locationManager.location else {
             promptForLocationAccess()
             return
         }
+        coordinateFromDeepLink = nil
         zoomAndPanMapView(toLocation: userLocation)
     }
 
@@ -2573,7 +2583,7 @@ extension PlacesViewController {
     override func locationManager(_ locationManager: LocationManagerProtocol, didUpdateAuthorized authorized: Bool) {
         super.locationManager(locationManager, didUpdateAuthorized: authorized)
         if authorized {
-            panMapToNextLocationUpdate = currentSearch == nil
+            panMapToNextLocationUpdate = coordinateFromDeepLink == nil && currentSearch == nil
             locationManager.startMonitoringLocation()
         } else {
             panMapToNextLocationUpdate = false
